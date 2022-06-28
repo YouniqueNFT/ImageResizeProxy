@@ -39,9 +39,10 @@ namespace RainstormTech.Storm.ImageProxy
         /// <param name="output"></param>
         /// <param name="mode"></param>
         /// <returns></returns>
-        public async Task<Stream> ResizeAsync(string url, string size, string output, string mode)
+        public async Task<Stream> ResizeAsync(ResizeImagePayload resizeParams, string size, string output, string mode)
         {
-            return await this.GetResultStreamAsync(url, StringToImageSize(size), output, mode);
+            this.logger.LogWarning("storage connection string: " + resizeParams.connectionString);
+            return await this.GetResultStreamAsync(resizeParams, StringToImageSize(size), output, mode);
         }
 
 
@@ -53,22 +54,19 @@ namespace RainstormTech.Storm.ImageProxy
         /// <param name="output"></param>
         /// <param name="mode"></param>
         /// <returns></returns>
-        private async Task<Stream> GetResultStreamAsync(string uri, ImageSize imageSize, string output, string mode)
+        private async Task<Stream> GetResultStreamAsync(ResizeImagePayload resizeParams, ImageSize imageSize, string output, string mode)
         {
             // Create a BlobServiceClient object which will be used to create a container client
-            BlobServiceClient blobServiceClient = new BlobServiceClient(config.GetConnectionString("AzureStorage"));
-
-            // get the container name            
-            string containerName = config.GetValue("AzureContainer", "storm");
+            BlobServiceClient blobServiceClient = new BlobServiceClient(resizeParams.connectionString);
 
             try
             {
                 // Create the container and return a container client object
-                var container = blobServiceClient.GetBlobContainerClient(containerName);
+                var container = blobServiceClient.GetBlobContainerClient(resizeParams.containerIn);
                 await container.CreateIfNotExistsAsync();
 
                 // Get a reference to a blob
-                BlobClient blobClient = container.GetBlobClient(uri);
+                BlobClient blobClient = container.GetBlobClient(resizeParams.nameIn);
 
                 // Download the blob's contents and save it to a strea
                 using (var imageStream = new MemoryStream())

@@ -12,6 +12,8 @@ using Microsoft.AspNetCore.Http.Headers;
 using RainstormTech.Storm.ImageProxy.Extensions;
 using System.Collections.Generic;
 using Microsoft.Extensions.Configuration;
+using System.Text.Json;
+using Microsoft.Extensions.Logging;
 
 namespace RainstormTech.Storm.ImageProxy
 {
@@ -30,12 +32,11 @@ namespace RainstormTech.Storm.ImageProxy
             config = configuration;
         }
 
-
         /*
          * Main entry point...takes a wildcard.
          */
         [FunctionName("ResizeImage")]
-        public async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "ResizeImage/{*restOfPath}")] HttpRequest req, string restOfPath)
+        public async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "ResizeImage")] HttpRequest req, ILogger log)
         {
             // check to see if we have a cached version and just leave if we do
             if (req.HttpContext.Request.GetTypedHeaders().IfModifiedSince.HasValue)
@@ -45,20 +46,28 @@ namespace RainstormTech.Storm.ImageProxy
 
             try
             {
+                ResizeImagePayload reqBody = await JsonSerializer.DeserializeAsync<ResizeImagePayload>(req.Body);
+                log.LogWarning("Resizing image: " + (string) reqBody.nameIn);
+
                 // get the url
-                var url = restOfPath.Replace(config.GetValue<string>("AzureContainer"), "");
+                var url = reqBody.nameIn;
 
                 // we need at least the url
                 if (string.IsNullOrEmpty(url))
                     return new BadRequestObjectResult("URL is required");
 
-                // figure out the needed variables
-                // var url = req.Query["url"].ToString();
-                var size = req.Query.ContainsKey("size") ? req.Query["size"].ToString() : "";
-                var width = req.Query.ContainsKey("w") ? req.Query["w"].ToString().ToInt() : 0;
-                var height = req.Query.ContainsKey("h") ? req.Query["h"].ToString().ToInt() : 0;
-                var output = req.Query.ContainsKey("output") ? req.Query["output"].ToString().Replace(".", "") : url.ToSuffix();
-                var mode = req.Query.ContainsKey("mode") ? req.Query["mode"].ToString() : "";
+                var width = 400;
+                var height = 533;
+                var output = url.ToSuffix();
+                var mode = "";
+                var size = "";
+
+                // var size = req.Query.ContainsKey("size") ? req.Query["size"].ToString() : "";
+                // var width = req.Query.ContainsKey("w") ? req.Query["w"].ToString().ToInt() : 0;
+                // var height = req.Query.ContainsKey("h") ? req.Query["h"].ToString().ToInt() : 0;
+                // var output = req.Query.ContainsKey("output") ? req.Query["output"].ToString().Replace(".", "") : url.ToSuffix();
+                // var mode = req.Query.ContainsKey("mode") ? req.Query["mode"].ToString() : "";
+
                 var validOutputs = new List<string>() { "jpg", "gif", "png", "webp" };
 
                 // validate the output
@@ -70,7 +79,7 @@ namespace RainstormTech.Storm.ImageProxy
                     size = $"{width}x{height}";
 
                 // try to resize the image
-                var imageStream = await this.imageResizerService.ResizeAsync(url, size, output, mode);
+                var imageStream = await this.imageResizerService.ResizeAsync(reqBody, size, output, mode);
 
                 if (imageStream == null)
                     return new NotFoundResult();
@@ -93,6 +102,7 @@ namespace RainstormTech.Storm.ImageProxy
             }
             catch(Exception ex)
             {
+                 log.LogWarning("Exception! " + ex.Message);
                 return new BadRequestResult();
             }            
         }
