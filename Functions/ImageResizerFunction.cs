@@ -57,7 +57,7 @@ namespace RainstormTech.Storm.ImageProxy
                     return new BadRequestObjectResult("URL is required");
 
                 var width = 400;
-                var height = 533;
+                var height = 0; // let this be auto-sized
                 var output = url.ToSuffix();
                 var mode = "";
                 var size = "";

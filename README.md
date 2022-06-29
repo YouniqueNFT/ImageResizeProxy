@@ -1,3 +1,17 @@
+# Overview
+This project was cloned for use in the Selfie.Live backend.
+Build with dotnet core 3.1.420 installed (errors when trying to use v6)
+
+Ref: https://rainstormtech.com/dynamic-image-resizing-with-azure-functions-storage-and-cdn
+
+I updated the image processing library from v1.x to v2.1.3
+```
+dotnet add package SixLabors.ImageSharp
+```
+
+I added a call to AutoOrient() in the Image.Mutate() call, per this thread: https://stackoverflow.com/questions/68518051/sixlabors-imagesharp-crop-resizes-wrong-width-and-height
+
+
 # ImageResizeProxy
 
 This project is a demo that shows how to use this Azure Function (3.1) to dynamically resize images that are held in an Azure Storage container.  

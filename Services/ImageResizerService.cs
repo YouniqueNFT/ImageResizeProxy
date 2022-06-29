@@ -123,7 +123,9 @@ namespace RainstormTech.Storm.ImageProxy
                     Mode = seletedMode
                 };
 
-                image.Mutate(x => x.Resize(resizeOptions));
+                image.Mutate(x => x
+                    .AutoOrient()
+                    .Resize(resizeOptions));
 
                 // output defaults to the current filetype, but can be overridden
                 switch (output)
@@ -160,6 +162,7 @@ namespace RainstormTech.Storm.ImageProxy
             {
                 return imageSize;
             }
+
             return ImageSize.Parse(value);
         }
 
