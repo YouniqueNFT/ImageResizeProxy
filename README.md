@@ -1,4 +1,4 @@
-# Overview
+# General Notes
 This project was cloned for use in the Selfie.Live backend.
 Build with dotnet core 3.1.420 installed (errors when trying to use v6)
 
@@ -12,6 +12,12 @@ dotnet add package SixLabors.ImageSharp
 I added a call to AutoOrient() in the Image.Mutate() call, per this thread: https://stackoverflow.com/questions/68518051/sixlabors-imagesharp-crop-resizes-wrong-width-and-height
 
 To get C# intellisense working I had to move my C# VSC extension back to the previous version, v1.24.4
+<br>
+<br>
+
+# Deployment
+Go to the Azure VSC extension, open Function App, right click on image-resizer-cs3 and choose "Deploy to Function App..."  
+<br>
 
 # ImageResizeProxy
 
