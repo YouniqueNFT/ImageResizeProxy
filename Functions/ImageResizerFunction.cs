@@ -13,6 +13,7 @@ using RainstormTech.Storm.ImageProxy.Extensions;
 using System.Collections.Generic;
 using Microsoft.Extensions.Configuration;
 using System.Text.Json;
+using System.Web.Http;
 using Microsoft.Extensions.Logging;
 
 namespace RainstormTech.Storm.ImageProxy
@@ -23,7 +24,7 @@ namespace RainstormTech.Storm.ImageProxy
         private readonly IOptions<ClientCacheOptions> clientCacheOptions;
         private readonly IConfiguration config;
 
-        public ImageProxyFunction(IImageResizerService imageProxyService, 
+        public ImageProxyFunction(IImageResizerService imageProxyService,
             IOptions<ClientCacheOptions> clientCacheOptions,
             IConfiguration configuration)
         {
@@ -46,27 +47,23 @@ namespace RainstormTech.Storm.ImageProxy
 
             try
             {
-                ResizeImagePayload reqBody = await JsonSerializer.DeserializeAsync<ResizeImagePayload>(req.Body);
-                log.LogWarning("Resizing image: " + (string) reqBody.nameIn);
+                ResizeImagePayload resizeParams = await JsonSerializer.DeserializeAsync<ResizeImagePayload>(req.Body);
+                log.LogWarning("Resizing image: " + (string)resizeParams.nameIn);
 
                 // get the url
-                var url = reqBody.nameIn;
+                var url = resizeParams.nameIn;
 
                 // we need at least the url
                 if (string.IsNullOrEmpty(url))
                     return new BadRequestObjectResult("URL is required");
 
-                var width = 400;
+                //TESTING!!! 409
+                var width = 407;  //TESTING
+
                 var height = 0; // let this be auto-sized
                 var output = url.ToSuffix();
                 var mode = "";
                 var size = "";
-
-                // var size = req.Query.ContainsKey("size") ? req.Query["size"].ToString() : "";
-                // var width = req.Query.ContainsKey("w") ? req.Query["w"].ToString().ToInt() : 0;
-                // var height = req.Query.ContainsKey("h") ? req.Query["h"].ToString().ToInt() : 0;
-                // var output = req.Query.ContainsKey("output") ? req.Query["output"].ToString().Replace(".", "") : url.ToSuffix();
-                // var mode = req.Query.ContainsKey("mode") ? req.Query["mode"].ToString() : "";
 
                 var validOutputs = new List<string>() { "jpg", "gif", "png", "webp" };
 
@@ -79,32 +76,44 @@ namespace RainstormTech.Storm.ImageProxy
                     size = $"{width}x{height}";
 
                 // try to resize the image
-                var imageStream = await this.imageResizerService.ResizeAsync(reqBody, size, output, mode);
-
-                if (imageStream == null)
-                    return new NotFoundResult();
-
-                // choose the correct mime type
-                var mimeType = output switch
+                bool response = await this.imageResizerService.ResizeAsync(resizeParams, size, output, mode);
+                if (response)
                 {
-                    "jpg" => "image/jpeg",
-                    "gif" => "image/gif",
-                    "png" => "image/png",
-                    "webp" => "image/webp",
-                    _ => "image/jpeg"
-                };
+                    return new OkObjectResult(null);
+                }
+                else
+                {
+                    return new InternalServerErrorResult();
+                }
 
-                // set cache 
-                this.SetCacheHeaders(req.HttpContext.Response.GetTypedHeaders());
-                
-                // return the stream
-                return new FileStreamResult(imageStream, mimeType);
+
+                /* OLD code to return the file content
+                    var imageStream = await this.imageResizerService.ResizeAsync(resizeParams, size, output, mode);
+
+                    if (imageStream == null)
+                        return new NotFoundResult();
+
+                    // choose the correct mime type
+                    var mimeType = output switch
+                    {
+                        "jpg" => "image/jpeg",
+                        "gif" => "image/gif",
+                        "png" => "image/png",
+                        "webp" => "image/webp",
+                        _ => "image/jpeg"
+                    };
+
+                    // set cache 
+                    this.SetCacheHeaders(req.HttpContext.Response.GetTypedHeaders());
+                    // return the stream
+                    return new FileStreamResult(imageStream, mimeType);
+                */
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
-                 log.LogWarning("Exception! " + ex.Message);
+                log.LogWarning("Exception! " + ex.Message);
                 return new BadRequestResult();
-            }            
+            }
         }
 
         private void SetCacheHeaders(ResponseHeaders responseHeaders)

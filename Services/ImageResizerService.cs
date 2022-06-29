@@ -9,6 +9,7 @@ using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
 using RainstormTech.Storm.ImageProxy.Options;
 using Azure.Storage.Blobs;
+using Azure.Storage.Blobs.Models;
 using Microsoft.Extensions.Configuration;
 
 namespace RainstormTech.Storm.ImageProxy
@@ -20,8 +21,8 @@ namespace RainstormTech.Storm.ImageProxy
         private readonly ILogger logger;
         private readonly IConfiguration config;
 
-        public ImageResizerService(HttpClient httpClient, 
-            IOptions<ImageResizerOptions> settings, 
+        public ImageResizerService(HttpClient httpClient,
+            IOptions<ImageResizerOptions> settings,
             IConfiguration configuration,
             ILogger<ImageResizerService> logger)
         {
@@ -39,23 +40,11 @@ namespace RainstormTech.Storm.ImageProxy
         /// <param name="output"></param>
         /// <param name="mode"></param>
         /// <returns></returns>
-        public async Task<Stream> ResizeAsync(ResizeImagePayload resizeParams, string size, string output, string mode)
+        public async Task<bool> ResizeAsync(ResizeImagePayload resizeParams, string size, string output, string mode)
         {
-            this.logger.LogWarning("storage connection string: " + resizeParams.connectionString);
-            return await this.GetResultStreamAsync(resizeParams, StringToImageSize(size), output, mode);
-        }
+            Stream resizedImageStream;
+            ImageSize imageSize = StringToImageSize(size);
 
-
-        /// <summary>
-        /// Download the image and pass it to get processed
-        /// </summary>
-        /// <param name="uri"></param>
-        /// <param name="imageSize"></param>
-        /// <param name="output"></param>
-        /// <param name="mode"></param>
-        /// <returns></returns>
-        private async Task<Stream> GetResultStreamAsync(ResizeImagePayload resizeParams, ImageSize imageSize, string output, string mode)
-        {
             // Create a BlobServiceClient object which will be used to create a container client
             BlobServiceClient blobServiceClient = new BlobServiceClient(resizeParams.connectionString);
 
@@ -66,23 +55,34 @@ namespace RainstormTech.Storm.ImageProxy
                 await container.CreateIfNotExistsAsync();
 
                 // Get a reference to a blob
-                BlobClient blobClient = container.GetBlobClient(resizeParams.nameIn);
+                BlobClient inputBlobClient = container.GetBlobClient(resizeParams.nameIn);
 
-                // Download the blob's contents and save it to a strea
+                // Download the blob's contents and save it to a stream
                 using (var imageStream = new MemoryStream())
                 {
-                    await blobClient.DownloadToAsync(imageStream);
+                    var res = await inputBlobClient.DownloadToAsync(imageStream);
                     imageStream.Position = 0;
 
-                    return GetResizedImage(imageStream, imageSize, output, mode);
+                    // Note that it was this stream that used to be returned
+                    resizedImageStream = GetResizedImage(imageStream, imageSize, output, mode);
+
+                    // Save to output blob container
+                    var outputContainer = blobServiceClient.GetBlobContainerClient(resizeParams.containerOut);
+                    await outputContainer.CreateIfNotExistsAsync();
+                    // Use the same file name as the larger input image file
+                    BlobClient outputBlobClient = outputContainer.GetBlobClient(resizeParams.nameIn);
+                    BlobContentInfo resBlobUpload = await outputBlobClient.UploadAsync(resizedImageStream, new BlobHttpHeaders { ContentType = res.Headers.ContentType });
+
+                    return true;
                 }
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
-                return null;
+                this.logger.LogError("Exception manipulating blob container images - " + ex.Message);
             }
-        }
 
+            return false;
+        }
 
         /// <summary>
         /// Resizes/Crops image
@@ -97,7 +97,7 @@ namespace RainstormTech.Storm.ImageProxy
             var resultStream = new MemoryStream();
 
             // if we don't need to resize it, then just copy to resultStream and leave
-            if(size.Name == ImageSize.OriginalImageSize)
+            if (size.Name == ImageSize.OriginalImageSize)
             {
                 stream.CopyTo(resultStream);
                 resultStream.Position = 0;
@@ -137,8 +137,8 @@ namespace RainstormTech.Storm.ImageProxy
                         image.SaveAsGif(resultStream);
                         break;
                     // case "webp":         
-                        // hopefully SixLabors adds their own WebP save feature soon
-                        // break;
+                    // hopefully SixLabors adds their own WebP save feature soon
+                    // break;
                     default: // png
                         image.SaveAsPng(resultStream);
                         break;

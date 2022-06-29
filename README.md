@@ -11,6 +11,7 @@ dotnet add package SixLabors.ImageSharp
 
 I added a call to AutoOrient() in the Image.Mutate() call, per this thread: https://stackoverflow.com/questions/68518051/sixlabors-imagesharp-crop-resizes-wrong-width-and-height
 
+To get C# intellisense working I had to move my C# VSC extension back to the previous version, v1.24.4
 
 # ImageResizeProxy
 
