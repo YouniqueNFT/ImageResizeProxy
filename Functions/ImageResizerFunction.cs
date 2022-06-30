@@ -79,7 +79,8 @@ namespace RainstormTech.Storm.ImageProxy
                 bool response = await this.imageResizerService.ResizeAsync(resizeParams, size, output, mode);
                 if (response)
                 {
-                    return new OkObjectResult(null);
+                    var bodyRes = new { nameOut = resizeParams.nameIn };
+                    return new OkObjectResult(bodyRes);
                 }
                 else
                 {
