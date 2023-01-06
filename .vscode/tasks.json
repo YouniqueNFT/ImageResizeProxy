@@ -3,7 +3,7 @@
 	"tasks": [
 		{
 			"label": "clean (functions)",
-			"command": "dotnet",
+			"command": "/usr/local/share/dotnet/dotnet",
 			"args": [
 				"clean",
 				"/property:GenerateFullPaths=true",
@@ -14,7 +14,7 @@
 		},
 		{
 			"label": "build (functions)",
-			"command": "dotnet",
+			"command": "/usr/local/share/dotnet/dotnet",
 			"args": [
 				"build",
 				"/property:GenerateFullPaths=true",
@@ -30,7 +30,7 @@
 		},
 		{
 			"label": "clean release (functions)",
-			"command": "dotnet",
+			"command": "/usr/local/share/dotnet/dotnet",
 			"args": [
 				"clean",
 				"--configuration",
@@ -43,7 +43,7 @@
 		},
 		{
 			"label": "publish (functions)",
-			"command": "dotnet",
+			"command": "/usr/local/share/dotnet/dotnet",
 			"args": [
 				"publish",
 				"--configuration",

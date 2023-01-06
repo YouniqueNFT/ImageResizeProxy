@@ -1,3 +1,8 @@
+# Alex Notes
+To build this project: SHIFT-CMD-P, Tasks: Run Task, build(functions)  
+
+
+
 # General Notes
 This project was cloned for use in the Selfie.Live backend.
 Build with dotnet core 3.1.420 installed (errors when trying to use v6)
