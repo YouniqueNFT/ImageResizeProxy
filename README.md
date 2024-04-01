@@ -1,15 +1,16 @@
 # Alex Notes
-To build this project: SHIFT-CMD-P, Tasks: Run Task, build(functions)  
 
-
+To build this project: SHIFT-CMD-P, Tasks: Run Task, build(functions)
 
 # General Notes
+
 This project was cloned for use in the Selfie.Live backend.
 Build with dotnet core 3.1.420 installed (errors when trying to use v6)
 
 Ref: https://rainstormtech.com/dynamic-image-resizing-with-azure-functions-storage-and-cdn
 
 I updated the image processing library from v1.x to v2.1.3
+
 ```
 dotnet add package SixLabors.ImageSharp
 ```
@@ -20,15 +21,24 @@ To get C# intellisense working I had to move my C# VSC extension back to the pre
 <br>
 <br>
 
+# Running locally
+
+rename example json to local.settings.json, set AzureWebJobsStorage (get from Azure function app env var)  
+SHIFT-CMD-P, Tasks: Run Task, func: host start  
+The function will run at this url: http://localhost:7071/api/ResizeImage  
+Note that the endpoint is case insensitive, you can call xxx/resizeimage  
+In Postman call POST on the local endpoint, must pass in ResizeImagePayload as the body; see younique-server, image.service.ts resize()
+
 # Deployment
+
 Go to the Azure VSC extension, open Function App, right click on image-resizer-cs3 and choose "Deploy to Function App..."  
 <br>
 
 # ImageResizeProxy
 
-This project is a demo that shows how to use this Azure Function (3.1) to dynamically resize images that are held in an Azure Storage container.  
+This project is a demo that shows how to use this Azure Function (3.1) to dynamically resize images that are held in an Azure Storage container.
 
-There are several query string switches that can be used.  Here are all of them currently
+There are several query string switches that can be used. Here are all of them currently
 
 ```
 https://function-endpoint.azurewebsites.net/api/resizeimage/someimage.jpg
